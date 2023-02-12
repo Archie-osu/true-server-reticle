@@ -8,6 +8,7 @@ A mod fixing several issues with the reticle in World of Tanks:
 ## What's the difference between TSR and FixReticleSize?
 | Modification | True Server Reticle | Fix Reticle Size (v0.1)|
 | - | - | - |
+| No external dependencies |:x:|:heavy_check_mark:|
 | Scales down reticle to its true size |:heavy_check_mark:|:heavy_check_mark:|
 | Works with double-barrel tanks |:heavy_check_mark:|:x:|
 | Fixes gun angle desync |:heavy_check_mark:|:x:|
@@ -15,6 +16,7 @@ A mod fixing several issues with the reticle in World of Tanks:
 | Toggleable in the garage |:heavy_check_mark:|:x:|
 
 ## Any dependencies?
-Yes, there are two:
+Yes, there are three:
 - [CH4MPi's GUIFlash](https://github.com/CH4MPi/GUIFlash)
 - [IzeBerg's ModSettingsAPI](https://bitbucket.org/IzeBerg/modssettingsapi/src/master/)
+- [P0LIR0ID's ModsListAPI](https://gitlab.com/wot-public-mods/mods-list) 
