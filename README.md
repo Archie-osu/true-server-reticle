@@ -17,4 +17,4 @@ A mod fixing several issues with the reticle in World of Tanks:
 ## Any dependencies?
 Yes, there are two:
 - [CH4MPi's GUIFlash](https://github.com/CH4MPi/GUIFlash)
-- ModSettingsAPI (can't find download link, but it gets installed along with ProMod)
+- [IzeBerg's ModSettingsAPI](https://bitbucket.org/IzeBerg/modssettingsapi/src/master/)
