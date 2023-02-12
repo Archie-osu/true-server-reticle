@@ -18,5 +18,5 @@ A mod fixing several issues with the reticle in World of Tanks:
 ## Any dependencies?
 Yes, there are three:
 - [CH4MPi's GUIFlash](https://github.com/CH4MPi/GUIFlash)
-- [IzeBerg's ModSettingsAPI](https://bitbucket.org/IzeBerg/modssettingsapi/src/master/)
-- [P0LIR0ID's ModsListAPI](https://gitlab.com/wot-public-mods/mods-list) 
+- (optional) [IzeBerg's ModSettingsAPI](https://bitbucket.org/IzeBerg/modssettingsapi/src/master/)
+- (optional) [P0LIR0ID's ModsListAPI](https://gitlab.com/wot-public-mods/mods-list) 
