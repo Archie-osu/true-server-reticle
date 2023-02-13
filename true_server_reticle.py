@@ -22,7 +22,7 @@ from gui.modsSettingsApi import g_modsSettingsApi, templates
 whitelisted_modes = (aih_constants.CTRL_MODE_NAME.ARCADE, aih_constants.CTRL_MODE_NAME.STRATEGIC, aih_constants.CTRL_MODE_NAME.SNIPER, aih_constants.CTRL_MODE_NAME.DUAL_GUN)
 
 modID = 'archie_TrueServerReticle'
-modVersion = 1
+modVersion = 2
 settingsTemplate = {
 	"modDisplayName": "True Server Reticle",
 	"enabled": True,
@@ -30,18 +30,23 @@ settingsTemplate = {
 		templates.createCheckbox("Show dispersion number", 
 			"showDispersionNumber", 
 			True, 
-			tooltip="{HEADER}Show dispersion number{/HEADER}{BODY}Shows the gun dispersion just below the crosshair as a number{/BODY}"),
+			tooltip="{HEADER}Show dispersion number{/HEADER}{BODY}Shows the current gun dispersion as a number just below the crosshair.{/BODY}"),
 		templates.createCheckbox("Enable gun rotation fix", 
 			"gunRotationFix", 
 			True, 
-			tooltip="{HEADER}Enable gun rotation fix{/HEADER}{BODY}Fixes gun rotation being desynced from the server even if using server reticle.\nThis may cause animations to become jerky or stuttery.\nDoesn't work if the \"Enable Server Reticle\" setting is off!{/BODY}")
+			tooltip="{HEADER}Enable gun rotation fix{/HEADER}{BODY}Fixes gun rotation being desynced from the server even if using server reticle.\nThis may cause animations to become jerky or stuttery.\nDoesn't work if the \"Enable Server Reticle\" setting is off!{/BODY}"),
+		templates.createCheckbox("Enable reticle scaling", 
+			"reticleScaling", 
+			True, 
+			tooltip="{HEADER}Enable reticle scaling{/HEADER}{BODY}Scales the reticle down to its true size according to shot distribution.\nThis leads to the reticle being smaller, but shots may now hit its very edge.{/BODY}")
 	]
 }
 
 settings = {
 	"enabled": True,
 	"showDispersionNumber": True,
-	"gunRotationFix": True
+	"gunRotationFix": True,
+	"reticleScaling": True
 }
 
 def detour_function(old, new):
@@ -53,18 +58,18 @@ def detour_function(old, new):
 def DrawText(id, x, y, text, scale):
 	global COMPONENT_TYPE
 	global g_guiFlash
+	global settings
 	g_guiFlash.deleteComponent(id)
 
 	if settings["enabled"]:
-		g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text})
-		g_guiFlash.updateComponent(id, {'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale})
+		g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text, 'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale})
 
 # Called when the dispersion is changed
 def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0):
 	global settings
 	result = original(self, turretRotationSpeed, withShot)
 	dispersion = result[0] * 100 # result[1] would be client-side dispersion
-	real_dispersion = dispersion / 1.71
+	real_dispersion = dispersion / 1.71 if settings["reticleScaling"] else dispersion
 
 	if settings["showDispersionNumber"]:
 		screen_height = BigWorld.screenHeight()
@@ -75,14 +80,14 @@ def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0)
 # Updates the crosshair's attributes when not using server reticle
 def AvatarInputHandler_UpdateClientGunMarker(original, self, pos, direction, size, relaxTime, collData):
 	global settings
-	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"]:
+	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
 		size = tuple(x / 1.71 for x in size)
 	return original(self, pos, direction, size, relaxTime, collData)
 
 # Updates the crosshair's attributes when using server reticle
 def AvatarInputHandler_UpdateServerGunMarker(original, self, pos, direction, size, relaxTime, collData):
 	global settings
-	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"]:
+	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
 		size = tuple(x / 1.71 for x in size)
 	return original(self, pos, direction, size, relaxTime, collData)
 
@@ -109,6 +114,8 @@ def init():
 
 	# Register settings
 	# def getModSettings(linkage, template=None)
+	global settings
+	global settingsTemplate
 	savedSettings = g_modsSettingsApi.getModSettings(modID, settingsTemplate)
 	if savedSettings:
 		LOG_WARNING("[TSR by Archie] Loading saved settings {}".format(savedSettings))
