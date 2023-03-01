@@ -65,8 +65,8 @@ def DrawText(id, x, y, text, scale):
 	global settings
 	g_guiFlash.deleteComponent(id)
 
-	if settings["enabled"] and settings["showDispersionNumber"]:
-		g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text, 'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale})
+	shouldDrawText = settings["enabled"] and settings["showDispersionNumber"]
+	g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text, 'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale, 'visible': shouldDrawText})
 
 # Called when the dispersion is changed
 def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0):
