@@ -1,3 +1,7 @@
+# Fix crash until ModSettingsAPI is updated
+from constants import ARENA_GUI_TYPE
+ARENA_GUI_TYPE.TUTORIAL = 4
+
 # Game classes
 import BigWorld
 from debug_utils import LOG_WARNING
@@ -61,7 +65,7 @@ def DrawText(id, x, y, text, scale):
 	global settings
 	g_guiFlash.deleteComponent(id)
 
-	if settings["enabled"]:
+	if settings["enabled"] and settings["showDispersionNumber"]:
 		g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text, 'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale})
 
 # Called when the dispersion is changed
@@ -71,9 +75,8 @@ def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0)
 	dispersion = result[0] * 100 # result[1] would be client-side dispersion
 	real_dispersion = dispersion / 1.71 if settings["reticleScaling"] else dispersion
 
-	if settings["showDispersionNumber"]:
-		screen_height = BigWorld.screenHeight()
-		DrawText("CurrentDispersion", 0, round(screen_height * 0.52), ("{:.3f}").format(real_dispersion), 1.75)
+	screen_height = BigWorld.screenHeight()
+	DrawText("CurrentDispersion", 0, round(screen_height * 0.52), ("{:.3f}").format(real_dispersion), 1.75)
 
 	return result
 
