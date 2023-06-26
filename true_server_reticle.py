@@ -1,7 +1,3 @@
-# Fix crash until ModSettingsAPI is updated
-from constants import ARENA_GUI_TYPE
-ARENA_GUI_TYPE.TUTORIAL = 4
-
 # Game classes
 import BigWorld
 from debug_utils import LOG_WARNING
@@ -10,6 +6,7 @@ from VehicleGunRotator import VehicleGunRotator
 from AvatarInputHandler import AvatarInputHandler 
 import aih_constants
 import Keys
+import math
 
 # GUIFlash
 from gambiter import g_guiFlash
@@ -26,12 +23,12 @@ from gui.modsSettingsApi import g_modsSettingsApi, templates
 whitelisted_modes = (aih_constants.CTRL_MODE_NAME.ARCADE, aih_constants.CTRL_MODE_NAME.STRATEGIC, aih_constants.CTRL_MODE_NAME.SNIPER, aih_constants.CTRL_MODE_NAME.DUAL_GUN)
 
 modID = 'archie_TrueServerReticle'
-modVersion = 2
+modVersion = 4
 settingsTemplate = {
 	"modDisplayName": "True Server Reticle",
 	"enabled": True,
 	"column1": [
-		templates.createCheckbox("Show dispersion number", 
+		templates.createCheckbox("Show gun dispersion", 
 			"showDispersionNumber", 
 			True, 
 			tooltip="{HEADER}Show dispersion number{/HEADER}{BODY}Shows the current gun dispersion as a number just below the crosshair.{/BODY}"),
@@ -42,7 +39,17 @@ settingsTemplate = {
 		templates.createCheckbox("Enable reticle scaling", 
 			"reticleScaling", 
 			True, 
-			tooltip="{HEADER}Enable reticle scaling{/HEADER}{BODY}Scales the reticle down to its true size according to shot distribution.\nThis leads to the reticle being smaller, but shots may now hit its very edge.{/BODY}")
+			tooltip="{HEADER}Enable reticle scaling{/HEADER}{BODY}Scales the reticle down to its true size according to shot distribution.\nThis leads to the reticle being smaller, but shots may now hit its very edge.{/BODY}"),
+		templates.createDropdown("Reticle scaling type", 
+			"scalingType",
+			["Linear", "Interpolated"],
+			0,
+			tooltip="{HEADER}Reticle scaling type{/HEADER}{BODY}Controls how the reticle is scaled.\nLinear scaling is best suited for low-latency stable internet connections.\nInterpolated scaling prevents shots going outside of the reticle on unstable internet,\n while giving an impression of faster aiming time.{/BODY}"),
+		templates.createCheckbox("Show aiming time", 
+			"showAimTime",
+			True,
+			tooltip="{HEADER}Show aiming time{/HEADER}{BODY}Shows the current remaining aimtime just below the crosshair.{/BODY}"),
+		
 	]
 }
 
@@ -50,8 +57,12 @@ settings = {
 	"enabled": True,
 	"showDispersionNumber": True,
 	"gunRotationFix": True,
-	"reticleScaling": True
+	"reticleScaling": True,
+	"scalingType": 0,
+	"showAimTime": False
 }
+
+easing_factor = 1
 
 def detour_function(old, new):
 	def run(*args, **kwargs):
@@ -59,39 +70,69 @@ def detour_function(old, new):
 
 	return run
 
-def DrawText(id, x, y, text, scale):
+def draw_text(id, x, y, text, scale, visible):
 	global COMPONENT_TYPE
 	global g_guiFlash
-	global settings
 	g_guiFlash.deleteComponent(id)
-
-	shouldDrawText = settings["enabled"] and settings["showDispersionNumber"]
-	g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text, 'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale, 'visible': shouldDrawText})
+	g_guiFlash.createComponent(id, COMPONENT_TYPE.LABEL, {'text': text, 'alignX': 'center', 'x': x, 'y': y, 'scaleX': scale, 'scaleY': scale, 'visible': visible})
 
 # Called when the dispersion is changed
 def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0):
 	global settings
+	global easing_factor
 	result = original(self, turretRotationSpeed, withShot)
-	dispersion = result[0] * 100 # result[1] would be client-side dispersion
-	real_dispersion = dispersion / 1.71 if settings["reticleScaling"] else dispersion
 
 	screen_height = BigWorld.screenHeight()
-	DrawText("CurrentDispersion", 0, round(screen_height * 0.52), ("{:.3f}").format(real_dispersion), 1.75)
+	current_dispersion = result[0] * 100 # result[1] would be current client-side dispersion
+	real_dispersion = current_dispersion / 1.71 if (settings["reticleScaling"] and (settings["scalingType"] == 0)) else current_dispersion
+
+	easing_factor = 1
+
+	# Use interpolation
+	aiming_start_time = self._PlayerAvatar__aimingInfo[0]
+	aiming_start_factor = self._PlayerAvatar__aimingInfo[1]
+	mult_factor = self._PlayerAvatar__aimingInfo[2]
+	total_aiming_time = self._PlayerAvatar__aimingInfo[6]
+	aiming_time_remaining = max(aiming_start_time + (total_aiming_time * math.log(aiming_start_factor / mult_factor)) - BigWorld.time(), 0)
+
+	if settings["scalingType"] == 1 and settings["reticleScaling"]:
+		fully_aimed_dispersion = current_dispersion * math.exp((-aiming_time_remaining) / total_aiming_time)
+
+		# Dispersion is not altered if aim time remaining > 2 seconds
+		easing_factor = 1 - ease_aiming(min(aiming_time_remaining / 4.5, 1)) 
+		# draw_text("easing_factor", 0, round(screen_height * 0.62), ("easing_factor: {:.3f} aimtime: {:.3f}").format(easing_factor, aiming_time_remaining), 1.75, (settings["scalingType"] == 1 and settings["reticleScaling"] and settings["enabled"]))
+
+		real_dispersion = current_dispersion / max((1.71 * easing_factor, 1))
+
+	text = ""
+	if settings["showDispersionNumber"] and settings["showAimTime"]:
+		text = "{:.3f} ({:.2f}s)".format(real_dispersion, aiming_time_remaining)
+	elif settings["showDispersionNumber"]:
+		text = "{:.3f}".format(real_dispersion)
+	elif settings["showAimTime"]:
+		text = "{:.2f}s".format(aiming_time_remaining) 
+
+	draw_text("GunInformationText", 0, round(screen_height * 0.52), text, 1.75, (settings["enabled"] and (settings["showDispersionNumber"] or settings["showAimTime"])))
 
 	return result
+
+def ease_aiming(x):
+	  return 1 - math.cos((x * math.pi) / 2);
 
 # Updates the crosshair's attributes when not using server reticle
 def AvatarInputHandler_UpdateClientGunMarker(original, self, pos, direction, size, relaxTime, collData):
 	global settings
+	global easing_factor
 	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
-		size = tuple(x / 1.71 for x in size)
+		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
 	return original(self, pos, direction, size, relaxTime, collData)
 
 # Updates the crosshair's attributes when using server reticle
 def AvatarInputHandler_UpdateServerGunMarker(original, self, pos, direction, size, relaxTime, collData):
 	global settings
+	global easing_factor
 	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
-		size = tuple(x / 1.71 for x in size)
+		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
 	return original(self, pos, direction, size, relaxTime, collData)
 
 # Controls turret rotation and where the shot goes
