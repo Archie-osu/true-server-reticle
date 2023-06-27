@@ -110,7 +110,7 @@ def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0)
 	elif settings["showDispersionNumber"]:
 		text = "{:.3f}".format(real_dispersion)
 	elif settings["showAimTime"]:
-		text = "{:.2f}s".format(aiming_time_remaining) 
+		text = "{:.1f}s".format(aiming_time_remaining) 
 
 	draw_text("GunInformationText", 0, round(screen_height * 0.52), text, 1.75, (settings["enabled"] and (settings["showDispersionNumber"] or settings["showAimTime"])))
 
