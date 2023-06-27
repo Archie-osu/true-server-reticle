@@ -106,7 +106,7 @@ def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0)
 
 	text = ""
 	if settings["showDispersionNumber"] and settings["showAimTime"]:
-		text = "{:.3f} ({:.2f}s)".format(real_dispersion, aiming_time_remaining)
+		text = "{:.3f} ({:.1f}s)".format(real_dispersion, aiming_time_remaining)
 	elif settings["showDispersionNumber"]:
 		text = "{:.3f}".format(real_dispersion)
 	elif settings["showAimTime"]:
