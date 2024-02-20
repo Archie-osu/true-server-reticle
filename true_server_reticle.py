@@ -23,7 +23,7 @@ from gui.modsSettingsApi import g_modsSettingsApi, templates
 whitelisted_modes = (aih_constants.CTRL_MODE_NAME.ARCADE, aih_constants.CTRL_MODE_NAME.STRATEGIC, aih_constants.CTRL_MODE_NAME.SNIPER, aih_constants.CTRL_MODE_NAME.DUAL_GUN)
 
 modID = 'archie_TrueServerReticle'
-modVersion = 4
+modVersion = 5
 settingsTemplate = {
 	"modDisplayName": "True Server Reticle",
 	"enabled": True,
@@ -91,8 +91,8 @@ def PlayerAvatar_GetShotAngle(original, self, turretRotationSpeed, withShot = 0)
 	# Use interpolation
 	aiming_start_time = self._PlayerAvatar__aimingInfo[0]
 	aiming_start_factor = self._PlayerAvatar__aimingInfo[1]
-	mult_factor = self._PlayerAvatar__aimingInfo[2]
-	total_aiming_time = self._PlayerAvatar__aimingInfo[6]
+	mult_factor = self._PlayerAvatar__dispersionInfo[0]
+	total_aiming_time = self._PlayerAvatar__dispersionInfo[4]
 	aiming_time_remaining = max(aiming_start_time + (total_aiming_time * math.log(aiming_start_factor / mult_factor)) - BigWorld.time(), 0)
 
 	if settings["scalingType"] == 1 and settings["reticleScaling"]:
@@ -135,6 +135,14 @@ def AvatarInputHandler_UpdateServerGunMarker(original, self, pos, direction, siz
 		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
 	return original(self, pos, direction, size, relaxTime, collData)
 
+# Updates the crosshair's attributes when using dual guns?
+def AvatarInputHandler_UpdateDualAccGunMarker(original, self, pos, direction, size, relaxTime, collData):
+	global settings
+	global easing_factor
+	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
+		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
+	return original(self, pos, direction, size, relaxTime, collData)
+
 # Controls turret rotation and where the shot goes
 def VehicleGunRotator_setShotPosition(original, self, vehicleID, shotPos, shotVec, dispersionAngle, forceValueRefresh=False):
 	global settings
@@ -153,9 +161,9 @@ def init():
 	# Create hooks
 	PlayerAvatar.getOwnVehicleShotDispersionAngle = detour_function(PlayerAvatar.getOwnVehicleShotDispersionAngle, PlayerAvatar_GetShotAngle)
 	VehicleGunRotator.setShotPosition = detour_function(VehicleGunRotator.setShotPosition, VehicleGunRotator_setShotPosition)
-	AvatarInputHandler.updateGunMarker = detour_function(AvatarInputHandler.updateGunMarker, AvatarInputHandler_UpdateClientGunMarker)
-	AvatarInputHandler.updateGunMarker2 = detour_function(AvatarInputHandler.updateGunMarker2, AvatarInputHandler_UpdateServerGunMarker)
-
+	AvatarInputHandler.updateClientGunMarker = detour_function(AvatarInputHandler.updateClientGunMarker, AvatarInputHandler_UpdateClientGunMarker)
+	AvatarInputHandler.updateServerGunMarker = detour_function(AvatarInputHandler.updateServerGunMarker, AvatarInputHandler_UpdateServerGunMarker)
+	AvatarInputHandler.updateDualAccGunMarker = detour_function(AvatarInputHandler.updateDualAccGunMarker, AvatarInputHandler_UpdateDualAccGunMarker)
 	# Register settings
 	# def getModSettings(linkage, template=None)
 	global settings
