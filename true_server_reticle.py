@@ -120,28 +120,28 @@ def ease_aiming(x):
 	  return 1 - math.cos((x * math.pi) / 2);
 
 # Updates the crosshair's attributes when not using server reticle
-def AvatarInputHandler_UpdateClientGunMarker(original, self, pos, direction, size, relaxTime, collData):
+def AvatarInputHandler_UpdateClientGunMarker(original, self, pos, direction, size, sizeOffset, relaxTime, collData):
 	global settings
 	global easing_factor
 	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
-		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
-	return original(self, pos, direction, size, relaxTime, collData)
+		size = size / max((1.71 * easing_factor, 1))
+	return original(self, pos, direction, size, sizeOffset, relaxTime, collData)
 
 # Updates the crosshair's attributes when using server reticle
-def AvatarInputHandler_UpdateServerGunMarker(original, self, pos, direction, size, relaxTime, collData):
+def AvatarInputHandler_UpdateServerGunMarker(original, self, pos, direction, size, sizeOffset, relaxTime, collData):
 	global settings
 	global easing_factor
 	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
-		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
-	return original(self, pos, direction, size, relaxTime, collData)
+		size = size / max((1.71 * easing_factor, 1))
+	return original(self, pos, direction, size, sizeOffset, relaxTime, collData)
 
 # Updates the crosshair's attributes when using dual guns?
-def AvatarInputHandler_UpdateDualAccGunMarker(original, self, pos, direction, size, relaxTime, collData):
+def AvatarInputHandler_UpdateDualAccGunMarker(original, self, pos, direction, size, sizeOffset, relaxTime, collData):
 	global settings
 	global easing_factor
 	if (self._AvatarInputHandler__ctrlModeName in whitelisted_modes) and settings["enabled"] and settings["reticleScaling"]:
-		size = tuple(x / max((1.71 * easing_factor, 1)) for x in size)
-	return original(self, pos, direction, size, relaxTime, collData)
+		size = size / 1.71
+	return original(self, pos, direction, size, sizeOffset, relaxTime, collData)
 
 # Controls turret rotation and where the shot goes
 def VehicleGunRotator_setShotPosition(original, self, vehicleID, shotPos, shotVec, dispersionAngle, forceValueRefresh=False):
